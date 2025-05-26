@@ -1,0 +1,17 @@
+[project]
+name = "spriteflow"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Andrei Ionescu", email = "voidwarden@yahoo.com" }
+]
+requires-python = ">=3.13.3"
+dependencies = []
+
+[project.scripts]
+spriteflow = "spriteflow:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
