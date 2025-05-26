@@ -7,7 +7,9 @@ authors = [
     { name = "Andrei Ionescu", email = "voidwarden@yahoo.com" }
 ]
 requires-python = ">=3.13.3"
-dependencies = []
+dependencies = [
+    "crawlee[all]>=0.6.9",
+]
 
 [project.scripts]
 spritecrawl = "spritecrawl:main"

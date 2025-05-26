@@ -9,6 +9,10 @@ dependencies = []
 [tool.uv.workspace]
 members = ["spritecrawl", "spriteflow"]
 
+[tool.uv.sources]
+spritecrawl = { workspace = true }
+spriteflow = { workspace = true }
+
 [project.scripts]
 spritevault = "spritevault:main"
 
