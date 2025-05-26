@@ -13,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-spritecrawl = "spritecrawl:main"
+spritecrawl = "spritecrawl.main:main"
 
 [build-system]
 requires = ["hatchling"]
