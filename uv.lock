@@ -6,6 +6,7 @@ requires-python = ">=3.13.3"
 members = [
     "spritecrawl",
     "spriteflow",
+    "spriteml",
     "spritevault",
 ]
 
@@ -1135,15 +1136,34 @@ version = "0.1.0"
 source = { editable = "spritecrawl" }
 dependencies = [
     { name = "crawlee", extra = ["all"] },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "crawlee", extras = ["all"], specifier = ">=0.6.9" }]
+requires-dist = [
+    { name = "crawlee", extras = ["all"], specifier = ">=0.6.9" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+]
 
 [[package]]
 name = "spriteflow"
 version = "0.1.0"
 source = { editable = "spriteflow" }
+dependencies = [
+    { name = "spritecrawl" },
+    { name = "spriteml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "spritecrawl", editable = "spritecrawl" },
+    { name = "spriteml", editable = "spriteml" },
+]
+
+[[package]]
+name = "spriteml"
+version = "0.1.0"
+source = { editable = "spriteml" }
 
 [[package]]
 name = "spritevault"

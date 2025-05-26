@@ -7,7 +7,7 @@ authors = [
     { name = "Andrei Ionescu", email = "voidwarden@yahoo.com" }
 ]
 requires-python = ">=3.13.3"
-dependencies = []
+dependencies = ["spritecrawl", "spriteml"]
 
 [project.scripts]
 spriteflow = "spriteflow:main"

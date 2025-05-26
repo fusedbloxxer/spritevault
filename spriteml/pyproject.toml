@@ -1,5 +1,5 @@
 [project]
-name = "spritecrawl"
+name = "spriteml"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -7,13 +7,10 @@ authors = [
     { name = "Andrei Ionescu", email = "voidwarden@yahoo.com" }
 ]
 requires-python = ">=3.13.3"
-dependencies = [
-    "crawlee[all]>=0.6.9",
-    "python-dotenv>=1.1.0",
-]
+dependencies = []
 
 [project.scripts]
-spritecrawl = "spritecrawl:main"
+spriteml = "spriteml:main"
 
 [build-system]
 requires = ["hatchling"]

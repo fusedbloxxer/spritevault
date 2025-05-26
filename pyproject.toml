@@ -7,11 +7,12 @@ requires-python = ">=3.13.3"
 dependencies = []
 
 [tool.uv.workspace]
-members = ["spritecrawl", "spriteflow"]
+members = ["spritecrawl", "spriteflow", "spriteml"]
 
 [tool.uv.sources]
 spritecrawl = { workspace = true }
 spriteflow = { workspace = true }
+spriteml = { workspace = true }
 
 [project.scripts]
 spritevault = "spritevault:main"
