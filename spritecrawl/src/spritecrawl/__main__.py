@@ -1,4 +1,15 @@
-from .main import main
+import asyncio
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from .crawlers import crawlers
 
 
-main()
+async def scrape() -> None:
+    for crawler in crawlers:
+        await crawler.scrape()
+
+
+asyncio.run(scrape())

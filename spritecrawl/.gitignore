@@ -1,0 +1,3 @@
+# Exclude secrets
+.env
+.env.secret
