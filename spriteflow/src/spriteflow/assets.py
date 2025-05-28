@@ -10,6 +10,7 @@ from spritecrawl.resources import AccountResource, DatabaseConfig, DatabaseResou
 
 @asset
 async def craftpix_sprites(context: AssetExecutionContext) -> None:
+    """Pixel art spritesheets and metadata from craftpix.net website"""
     context.log.info("Crawling Craftpix")
 
     db_username = os.getenv("POSTGRES_USER")

@@ -1,0 +1,16 @@
+services:
+  database:
+    container_name: spritedb
+    build:
+      context: ./database
+      dockerfile: ../database.dockerfile
+    environment:
+      POSTGRES_DB: spritedb
+    env_file:
+      - .env
+      - .env.database
+    ports:
+      - 8092:5432
+    volumes:
+      - $POSTGRES_STORAGE_DIR:/var/lib/postgresql/data
+    restart: always
