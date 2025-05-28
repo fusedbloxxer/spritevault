@@ -3,18 +3,22 @@ import typing as t
 from crawlee import Request
 from pathlib import Path
 
-from ._context import CraftpixContext
-from ._constants import Labels
-from ._helpers import router
+from .._router import RouterWithContext
+from ._context import CraftpixWebsiteContext
+from ._context import CraftpixCrawlerContext
+from ._common import Labels
+
+
+router = RouterWithContext[CraftpixCrawlerContext, CraftpixWebsiteContext]()
 
 
 @router.default_handler
-async def default_handler(context: CraftpixContext) -> None:
+async def default_handler(context: CraftpixCrawlerContext) -> None:
     raise RuntimeError(f"Unmatched request found: {context.request.loaded_url}")
 
 
 @router.handler(Labels.Login)
-async def login_handler(context: CraftpixContext) -> None:
+async def login_handler(context: CraftpixCrawlerContext) -> None:
     login_element = context.page.locator("a.lr-singin")
     await login_element.click()
 
@@ -30,17 +34,12 @@ async def login_handler(context: CraftpixContext) -> None:
     await context.page.wait_for_timeout(2000)
 
     await context.add_requests(
-        [
-            Request.from_url(
-                context.start_url,
-                label=Labels.Category,
-            )
-        ]
+        [Request.from_url(context.seed_url, label=Labels.Category)]
     )
 
 
 @router.handler(Labels.Category)
-async def category_handler(context: CraftpixContext) -> None:
+async def category_handler(context: CraftpixCrawlerContext) -> None:
     context.log.info(f"Category: {context.request.loaded_url}")
 
     heading_element = context.page.locator("h1", has_text="Pixel Art Sprites")
@@ -68,7 +67,7 @@ async def category_handler(context: CraftpixContext) -> None:
 
 
 @router.handler(Labels.Freebie)
-async def freebie_handler(context: CraftpixContext) -> None:
+async def freebie_handler(context: CraftpixCrawlerContext) -> None:
     context.log.info(f"Freebie URL: {context.request.loaded_url}")
 
     download_button = context.page.locator("a.gtm-download-free").first
@@ -79,21 +78,21 @@ async def freebie_handler(context: CraftpixContext) -> None:
 
 
 @router.handler(Labels.Product)
-async def product_handler(context: CraftpixContext) -> None:
+async def product_handler(context: CraftpixCrawlerContext) -> None:
     context.log.info(f"Product URL: {context.request.loaded_url}")
 
 
 @router.handler(Labels.Download)
-async def download_handler(context: CraftpixContext) -> None:
+async def download_handler(context: CraftpixCrawlerContext) -> None:
     download_button = context.page.locator("a", has_text="Start Download")
     await download_button.wait_for(state="visible", timeout=16 * 1_000)
 
     async with context.page.expect_download() as download_info:
         await download_button.click()
     download = await download_info.value
-    filepath = Path(".images", download.suggested_filename)
+    filepath = Path(context.storage.storage, download.suggested_filename)
     await download.save_as(filepath)
 
 
-# 1. DB to check if asset was already scraped or not. Share connection to DB? Check based on URL only?
-# 2. Where to save the scraped data? Use crawlee dataset?
+# 1. Where to save the scraped data? Use crawlee dataset?
+# 2. Database schema

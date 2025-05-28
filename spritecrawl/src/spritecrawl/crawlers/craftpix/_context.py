@@ -1,18 +1,19 @@
 from crawlee.crawlers import PlaywrightCrawlingContext
 from dataclasses import dataclass
 
-from ...resources._database import DatabaseWrapper
-from ...resources._account import Account
+from ...resources import DatabaseResource, AccountResource, StorageResource
 from .._context import WebsiteContext
 
 
 @dataclass(frozen=True)
 class CraftpixWebsiteContext(WebsiteContext):
-    db: DatabaseWrapper
-    account: Account
-    start_url: str
+    account: AccountResource
+    storage: StorageResource
+    db: DatabaseResource
+    login_url: str
+    seed_url: str
 
 
 @dataclass(frozen=True)
-class CraftpixContext(PlaywrightCrawlingContext, CraftpixWebsiteContext):
+class CraftpixCrawlerContext(PlaywrightCrawlingContext, CraftpixWebsiteContext):
     pass

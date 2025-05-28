@@ -17,6 +17,9 @@ spriteml = { workspace = true }
 [project.scripts]
 spritevault = "spritevault:main"
 
+[tool.dagster]
+module_name = "spriteflow.definitions"
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

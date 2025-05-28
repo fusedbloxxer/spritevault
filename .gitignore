@@ -1,5 +1,14 @@
 ### Spritevault ###
+.env.database
+.env.secrets
+
+# Stored data
+data/
+
+# Internal storage for libraries
 .storage/
+
+# Visual studio code workspace settings
 .vscode/
 
 ### Linux ###
@@ -140,7 +149,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/

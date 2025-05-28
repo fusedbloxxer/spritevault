@@ -1,3 +1,3 @@
-from ._crawler import CraftpixCrawler
+from ._crawler import CraftpixCrawler, CraftpixResources
 
-crawler = CraftpixCrawler()
+__all__ = ["CraftpixCrawler", "CraftpixResources"]

@@ -1,0 +1,13 @@
+services:
+  database:
+    image: postgres
+    restart: always
+    env_file:
+      - .env
+      - .env.database
+    environment:
+      POSTGRES_DB: spritecrawl
+    ports:
+      - 8092:5432
+    volumes:
+      - $POSTGRES_STORAGE_DIR:/var/lib/postgresql/data

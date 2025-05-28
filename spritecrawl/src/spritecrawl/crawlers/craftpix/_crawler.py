@@ -2,29 +2,37 @@ from crawlee.crawlers import PlaywrightCrawler
 from crawlee.sessions import SessionPool
 from crawlee import Request
 
+from dataclasses import dataclass
 from datetime import timedelta
 
-from ...resources._database import DatabaseWrapper
-from ...resources._account import Account
-
+from ...resources import DatabaseResource, AccountResource, StorageResource
 from .._crawler import Crawler
-
 from ._context import CraftpixWebsiteContext
-from ._constants import Labels
+from ._common import Labels
 from ._routes import router
 
 
-class CraftpixCrawler(Crawler):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+@dataclass()
+class CraftpixResources:
+    database: DatabaseResource
+    storage: StorageResource
+    account: AccountResource
 
-        # Create context
-        context = CraftpixWebsiteContext(
-            db=DatabaseWrapper(),
-            start_url="https://craftpix.net/categorys/pixel-art-sprites/",
+
+class CraftpixCrawler(Crawler):
+    def __init__(self, resources: CraftpixResources) -> None:
+        super().__init__(name="craftpix")
+
+        # Setup crawler context
+        self.context = CraftpixWebsiteContext(
+            seed_url="https://craftpix.net/categorys/pixel-art-sprites/",
+            login_url="https://craftpix.net/",
+            account=resources.account,
+            storage=resources.storage,
+            db=resources.database,
         )
 
-        # Setup crawler
+        # Setup crawler settings
         session_settings = {
             "max_age": timedelta(hours=999_999),
             "max_usage_count": 999_999,
@@ -35,12 +43,13 @@ class CraftpixCrawler(Crawler):
             max_pool_size=1,
         )
         self.crawler = PlaywrightCrawler(
-            request_handler=router.with_context(context),
+            request_handler=router.with_context(self.context),
             session_pool=session,
             headless=False,
         )
 
     async def scrape(self) -> None:
-        await self.crawler.run(
-            [Request.from_url("https://craftpix.net/", label=Labels.Login)],
-        )
+        async with self.context.db:
+            await self.crawler.run(
+                [Request.from_url(self.context.login_url, label=Labels.Login)]
+            )
