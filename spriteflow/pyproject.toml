@@ -6,6 +6,7 @@ readme = "README.md"
 authors = [{ name = "Andrei Ionescu", email = "voidwarden@yahoo.com" }]
 requires-python = ">=3.13.3"
 dependencies = [
+    "asyncpg>=0.30.0",
     "dagster>=1.10.17",
     "dagster-webserver>=1.10.17",
     "python-dotenv>=1.1.0",

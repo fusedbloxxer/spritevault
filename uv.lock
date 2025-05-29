@@ -1500,14 +1500,12 @@ name = "spritecrawl"
 version = "0.1.0"
 source = { editable = "spritecrawl" }
 dependencies = [
-    { name = "asyncpg" },
     { name = "crawlee", extra = ["all"] },
     { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "crawlee", extras = ["all"], specifier = ">=0.6.9" },
     { name = "python-dotenv", specifier = ">=1.1.0" },
 ]
@@ -1517,6 +1515,7 @@ name = "spriteflow"
 version = "0.1.0"
 source = { editable = "spriteflow" }
 dependencies = [
+    { name = "asyncpg" },
     { name = "dagster" },
     { name = "dagster-webserver" },
     { name = "python-dotenv" },
@@ -1526,6 +1525,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "dagster", specifier = ">=1.10.17" },
     { name = "dagster-webserver", specifier = ">=1.10.17" },
     { name = "python-dotenv", specifier = ">=1.1.0" },

@@ -1,8 +1,9 @@
 from dagster import asset
 from dagster import AssetExecutionContext
 
-from .resources import CraftpixCrawlerResource
 from spritecrawl.crawlers import CraftpixCrawler
+
+from ..resources import CraftpixCrawlerResource
 
 
 @asset

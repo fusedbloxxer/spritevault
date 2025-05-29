@@ -5,7 +5,7 @@ from crawlee import Request
 from dataclasses import dataclass
 from datetime import timedelta
 
-from ...resources import DatabaseResource, AccountResource, StorageResource
+from ...resources import AssetDatabaseResource, AccountResource, StorageResource
 from .._crawler import Crawler
 from ._context import CraftpixWebsiteContext
 from ._common import Labels
@@ -14,7 +14,7 @@ from ._routes import router
 
 @dataclass()
 class CraftpixResources:
-    database: DatabaseResource
+    database: AssetDatabaseResource
     storage: StorageResource
     account: AccountResource
 
@@ -27,10 +27,13 @@ class CraftpixCrawler(Crawler):
         self.context = CraftpixWebsiteContext(
             seed_url="https://craftpix.net/categorys/pixel-art-sprites/",
             login_url="https://craftpix.net/",
+            database=resources.database,
             account=resources.account,
             storage=resources.storage,
-            db=resources.database,
         )
+
+        # Setup crawler seed
+        self.seed = Request.from_url(self.context.login_url, label=Labels.Login)
 
         # Setup crawler settings
         session_settings = {
@@ -49,7 +52,5 @@ class CraftpixCrawler(Crawler):
         )
 
     async def scrape(self) -> None:
-        async with self.context.db:
-            await self.crawler.run(
-                [Request.from_url(self.context.login_url, label=Labels.Login)]
-            )
+        async with self.context.database:
+            await self.crawler.run([self.seed])
