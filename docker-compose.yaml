@@ -4,8 +4,6 @@ services:
     build:
       context: ./database
       dockerfile: ../database.dockerfile
-    environment:
-      POSTGRES_DB: spritedb
     env_file:
       - .env
       - .env.database

@@ -1,8 +1,6 @@
 import asyncpg
 
-from typing import Self
 from asyncpg import Pool
-
 from dataclasses import dataclass
 
 

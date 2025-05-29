@@ -92,7 +92,3 @@ async def download_handler(context: CraftpixCrawlerContext) -> None:
     download = await download_info.value
     filepath = Path(context.storage.storage, download.suggested_filename)
     await download.save_as(filepath)
-
-
-# 1. Where to save the scraped data? Use crawlee dataset?
-# 2. Database schema
