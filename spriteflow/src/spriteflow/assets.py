@@ -16,5 +16,4 @@ async def craftpix_sprites(
     crawler: CraftpixCrawler = crawler_craftpix.get_crawler()
 
     # debug
-    print(crawler.context.storage.path)
-
+    await crawler.scrape()
