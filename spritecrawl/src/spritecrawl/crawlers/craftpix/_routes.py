@@ -47,17 +47,21 @@ async def category_handler(context: CraftpixCrawlerContext) -> None:
 
     article_element = context.page.locator("article[data-item-id] .blog-grid-item > a")
     articles = await article_element.evaluate_all("(e) => e.map(x => x.href)")
-    items: t.List[Request] = []
+    assets: t.List[Request] = []
 
     for article in articles:
         if "freebie" in article:
-            items.append(Request.from_url(article, label=Labels.Freebie))
+            assets.append(Request.from_url(article, label=Labels.Freebie))
             continue
         if "product" in article:
-            items.append(Request.from_url(article, label=Labels.Product))
+            assets.append(Request.from_url(article, label=Labels.Product))
             continue
         context.log.error(f"Unmatched article URL {article}. Will not crawl.")
-    await context.add_requests(requests=items)
+
+    flags = await context.database.assets_exist([item.url for item in assets])
+    assets = [asset for asset, asset_exists in zip(assets, flags) if not asset_exists]
+    await context.database.mark_assets([asset.url for asset in assets])
+    await context.add_requests(requests=assets)
 
     next_page_anchor = context.page.locator('a[class="nextpostslink"]').first
     next_page = await next_page_anchor.get_attribute("href")
@@ -72,7 +76,7 @@ async def freebie_handler(context: CraftpixCrawlerContext) -> None:
 
     download_button = context.page.locator("a.gtm-download-free").first
     link = await download_button.get_attribute("href")
-    assert link
+    assert link, 'Could not find download button for free asset!'
 
     await context.add_requests([Request.from_url(link, label=Labels.Download)])
 

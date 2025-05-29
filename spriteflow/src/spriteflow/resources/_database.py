@@ -1,6 +1,7 @@
 import asyncpg
 
 from dataclasses import dataclass
+from typing import Self, List, cast
 from asyncpg import Pool, Connection
 from dagster import ConfigurableResource
 
@@ -19,40 +20,55 @@ class PostgresAssetDatabaseResource(AssetDatabaseResource):
         Checks if an asset with the given ID already exists in the database.
         """
         assert self.__pool, "Database connection is closed."
+        result: List[bool] = await self.assets_exist([asset_id])
+        return False if len(result) == 0 else result[0]
 
+    async def assets_exist(self, asset_ids: List[str]) -> List[bool]:
+        """
+        Checks which assets from the input list already exist in the database using a batched query.
+        Returns a list of boolean for each asset.
+        """
+        assert self.__pool, "Database connection is closed."
         try:
             conn: Connection
             async with self.__pool.acquire() as conn:
-                query = "SELECT EXISTS (SELECT 1 FROM assets WHERE asset_id = $1)"
-                result = await conn.fetchval(query, asset_id)
-                return result is not None
+                assets = list(map(lambda x: (x,), asset_ids))
+                query = """SELECT EXISTS (SELECT 1 FROM asset_crawl WHERE asset_key = $1);"""
+                rows = await conn.fetchmany(query, assets)
+                rows = [column[0] for column in rows]
+                return cast(List[bool], rows)
         except Exception as e:
-            print(f"Error checking if asset exists: {e}")
-            return False
+            print(f"Error checking if assets exist: {e}")
+            return []
 
     async def mark_asset(self, asset_id: str) -> bool:
         """
         Marks an asset with the given ID as processed in the database.
         """
         assert self.__pool, "Database connection is closed."
+        return await self.mark_assets([asset_id])
 
+    async def mark_assets(self, asset_ids: List[str]) -> bool:
+        """
+        Marks asset with the given IDs as processed in the database.
+        """
+        assert self.__pool, "Database connection is closed."
         try:
             conn: Connection
             async with self.__pool.acquire() as conn:
-                query = "INSERT INTO assets (asset_id) VALUES ($1)"
-                await conn.execute(query, asset_id)
+                assets = list(map(lambda x: (x,), asset_ids))
+                query = """INSERT INTO asset_crawl (asset_key) VALUES ($1)"""
+                await conn.executemany(query, assets)
                 return True
-        except asyncpg.exceptions.UniqueViolationError:
-            print(f"Asset with ID {asset_id} already exists in database.")
-            return False  # Asset already existed
         except Exception as e:
-            print(f"Error marking asset: {e}")
+            print(f"Error marking assets: {e}")
             return False
 
-    async def __aenter__(self) -> None:
+    async def __aenter__(self) -> Self:
         try:
             self.__pool = await asyncpg.create_pool(dsn=self.dsn)
             print("Database connection opened.")
+            return self
         except Exception as e:
             print(f"Error connecting to database: {e}")
             raise

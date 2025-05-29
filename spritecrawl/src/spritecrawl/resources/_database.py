@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import AsyncContextManager
+from typing import AsyncContextManager, List, Self
 
 
 class AssetDatabaseResource(AsyncContextManager):
@@ -8,13 +8,21 @@ class AssetDatabaseResource(AsyncContextManager):
         raise NotImplementedError()
 
     @abstractmethod
-    async def __aexit__(self, exc_type, exc_value, traceback) -> None:
+    async def __aexit__(self, exc_type, exc_value, traceback) -> Self:
         raise NotImplementedError()
 
     @abstractmethod
-    async def asset_exists(self, asset_url: str) -> bool:
+    async def asset_exists(self, asset_id: str) -> bool:
         raise NotImplementedError()
 
     @abstractmethod
-    async def mark_asset(self, asset_url: str) -> bool:
+    async def assets_exist(self, asset_ids: List[str]) -> List[bool]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def mark_asset(self, asset_id: str) -> bool:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def mark_assets(self, asset_ids: List[str]) -> bool:
         raise NotImplementedError()

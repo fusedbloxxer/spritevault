@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS asset_crawl
+(
+    id SERIAL PRIMARY KEY,
+    asset_key VARCHAR(255) UNIQUE NOT NULL
+);

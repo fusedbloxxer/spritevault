@@ -33,6 +33,7 @@ crawler_craftpix = CraftpixCrawlerResource(
 
 all_resources = {
     "crawler_craftpix": crawler_craftpix,
+    "database": crawler_database,
 }
 
 __all__ = ["all_resources"]
