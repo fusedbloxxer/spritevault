@@ -4,4 +4,4 @@ from pathlib import Path
 
 @dataclass
 class StorageResource:
-    storage: Path
+    path: Path

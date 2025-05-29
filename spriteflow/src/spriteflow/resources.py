@@ -1,10 +1,11 @@
 import os
 
+from typing import cast
 from pathlib import Path
 from dagster import EnvVar
 from dagster import ConfigurableResource, ResourceDependency
 
-from spritecrawl.crawlers import Crawler, CraftpixCrawler, CraftpixResources
+from spritecrawl.crawlers import CraftpixCrawler, CraftpixResources
 from spritecrawl.resources import DatabaseConfig, DatabaseResource
 from spritecrawl.resources import AccountResource, StorageResource
 
@@ -39,7 +40,7 @@ class CraftpixCrawlerResource(ConfigurableResource):
     storage: ResourceDependency[CrawlerStorageResource]
     account: ResourceDependency[CrawlerAccountResource]
 
-    def get_crawler(self) -> Crawler:
+    def get_crawler(self) -> CraftpixCrawler:
         account = AccountResource(self.account.username, self.account.password)
         db_config = DatabaseConfig(dsn=self.database.connection.dsn)
         storage = StorageResource(Path(self.storage.path))
@@ -61,11 +62,11 @@ db_connection = PostgresConnectionResource(
     port="8092",
 )
 
+crawler_craftpix_storage = CrawlerStorageResource(
+    path=os.path.join(cast(str, EnvVar("SCRAPE_DIR").get_value()), "craftpix", "images")
+)
 crawler_craftpix_account = CrawlerAccountResource(
     username=EnvVar("CRAFTPIX_USERNAME"), password=EnvVar("CRAFTPIX_PASSWORD")
-)
-crawler_craftpix_storage = CrawlerStorageResource(
-    path=os.path.join(EnvVar("SCRAPE_DIR"), "craftpix", "images")
 )
 crawler_craftpix_database = CrawlerDatabaseResource(
     connection=db_connection,

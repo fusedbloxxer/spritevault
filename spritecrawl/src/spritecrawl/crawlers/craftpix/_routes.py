@@ -90,5 +90,5 @@ async def download_handler(context: CraftpixCrawlerContext) -> None:
     async with context.page.expect_download() as download_info:
         await download_button.click()
     download = await download_info.value
-    filepath = Path(context.storage.storage, download.suggested_filename)
+    filepath = Path(context.storage.path, download.suggested_filename)
     await download.save_as(filepath)

@@ -2,6 +2,7 @@ from dagster import asset
 from dagster import AssetExecutionContext
 
 from .resources import CraftpixCrawlerResource
+from spritecrawl.crawlers import CraftpixCrawler
 
 
 @asset
@@ -12,8 +13,8 @@ async def craftpix_sprites(
     context.log.info("Crawling Craftpix")
 
     # Setup crawler
-    crawler = crawler_craftpix.get_crawler()
+    crawler: CraftpixCrawler = crawler_craftpix.get_crawler()
 
-    # Start scraping
-    await crawler.scrape()
+    # debug
+    print(crawler.context.storage.path)
 
