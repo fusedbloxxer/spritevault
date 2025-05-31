@@ -1,7 +1,7 @@
 import typing as t
 
-from crawlee import Request
 from pathlib import Path
+from crawlee import Request
 
 from .._router import RouterWithContext
 from ._context import CraftpixWebsiteContext
@@ -13,39 +13,38 @@ router = RouterWithContext[CraftpixCrawlerContext, CraftpixWebsiteContext]()
 
 
 @router.default_handler
-async def default_handler(context: CraftpixCrawlerContext) -> None:
-    raise RuntimeError(f"Unmatched request found: {context.request.loaded_url}")
+async def default_handler(ctx: CraftpixCrawlerContext) -> None:
+    raise RuntimeError(f"Unmatched request found: {ctx.request.loaded_url}")
 
 
 @router.handler(Labels.Login)
-async def login_handler(context: CraftpixCrawlerContext) -> None:
-    login_element = context.page.locator("a.lr-singin")
+async def login_handler(ctx: CraftpixCrawlerContext) -> None:
+    login_element = ctx.page.locator("a.lr-singin")
     await login_element.click()
 
-    auth_form = context.page.locator("#auth-form")
+    auth_form = ctx.page.locator("#auth-form")
     await auth_form.wait_for(state="visible")
 
-    await auth_form.locator("#user_login").type(context.account.username, delay=25)
-    await auth_form.locator("#user_pass").type(context.account.password, delay=25)
+    await auth_form.locator("#user_login").type(ctx.account.username, delay=25)
+    await auth_form.locator("#user_pass").type(ctx.account.password, delay=25)
     await auth_form.locator("#submit-btn").click()
 
-    account_element = context.page.locator('a > i[class="icon-account"]')
+    account_element = ctx.page.locator('a > i[class="icon-account"]')
     await account_element.wait_for(state="visible")
-    await context.page.wait_for_timeout(2000)
+    await ctx.page.wait_for_timeout(2000)
 
-    await context.add_requests(
-        [Request.from_url(context.seed_url, label=Labels.Category)]
-    )
+    seed_request = Request.from_url(ctx.seed_url, label=Labels.Category)
+    await ctx.add_requests([seed_request])
 
 
 @router.handler(Labels.Category)
-async def category_handler(context: CraftpixCrawlerContext) -> None:
-    context.log.info(f"Category: {context.request.loaded_url}")
+async def category_handler(ctx: CraftpixCrawlerContext) -> None:
+    ctx.log.info(f"Category: {ctx.request.loaded_url}")
 
-    heading_element = context.page.locator("h1", has_text="Pixel Art Sprites")
+    heading_element = ctx.page.locator("h1", has_text="Pixel Art Sprites")
     await heading_element.wait_for(state="visible")
 
-    article_element = context.page.locator("article[data-item-id] .blog-grid-item > a")
+    article_element = ctx.page.locator("article[data-item-id] .blog-grid-item > a")
     articles = await article_element.evaluate_all("(e) => e.map(x => x.href)")
     assets: t.List[Request] = []
 
@@ -56,43 +55,51 @@ async def category_handler(context: CraftpixCrawlerContext) -> None:
         if "product" in article:
             assets.append(Request.from_url(article, label=Labels.Product))
             continue
-        context.log.error(f"Unmatched article URL {article}. Will not crawl.")
+        ctx.log.error(f"Unmatched article URL {article}. Will not crawl.")
 
-    flags = await context.database.assets_exist([item.url for item in assets])
+    flags = await ctx.database.are_crawled([asset.url for asset in assets])
     assets = [asset for asset, asset_exists in zip(assets, flags) if not asset_exists]
-    await context.database.mark_assets([asset.url for asset in assets])
-    await context.add_requests(requests=assets)
+    await ctx.add_requests(requests=assets)
 
-    next_page_anchor = context.page.locator('a[class="nextpostslink"]').first
-    next_page = await next_page_anchor.get_attribute("href")
-    if next_page is None:
+    next_page_anchor = ctx.page.locator('a[class="nextpostslink"]').first
+    has_next_page = await next_page_anchor.is_visible()
+    if not has_next_page:
         return
-    await context.add_requests([Request.from_url(next_page, label=Labels.Category)])
+
+    next_page = await next_page_anchor.get_attribute("href")
+    assert next_page, "Next page button is visible but cannot retrieve its URL"
+    await ctx.add_requests([Request.from_url(next_page, label=Labels.Category)])
 
 
 @router.handler(Labels.Freebie)
-async def freebie_handler(context: CraftpixCrawlerContext) -> None:
-    context.log.info(f"Freebie URL: {context.request.loaded_url}")
+async def freebie_handler(ctx: CraftpixCrawlerContext) -> None:
+    await ctx.database.mark_url(ctx.store.website_id, ctx.request.url)
+    ctx.log.info(f"Freebie URL: {ctx.request.loaded_url}")
 
-    download_button = context.page.locator("a.gtm-download-free").first
+    download_button = ctx.page.locator("a.gtm-download-free").first
     link = await download_button.get_attribute("href")
-    assert link, 'Could not find download button for free asset!'
+    assert link, "Could not find download button for free asset!"
 
-    await context.add_requests([Request.from_url(link, label=Labels.Download)])
+    await ctx.add_requests([Request.from_url(link, label=Labels.Download)])
 
 
 @router.handler(Labels.Product)
-async def product_handler(context: CraftpixCrawlerContext) -> None:
-    context.log.info(f"Product URL: {context.request.loaded_url}")
+async def product_handler(ctx: CraftpixCrawlerContext) -> None:
+    await ctx.database.mark_url(ctx.store.website_id, ctx.request.url)
+    ctx.log.info(f"Product URL: {ctx.request.loaded_url}")
 
 
 @router.handler(Labels.Download)
-async def download_handler(context: CraftpixCrawlerContext) -> None:
-    download_button = context.page.locator("a", has_text="Start Download")
+async def download_handler(ctx: CraftpixCrawlerContext) -> None:
+    download_button = ctx.page.locator("a", has_text="Start Download")
     await download_button.wait_for(state="visible", timeout=16 * 1_000)
 
-    async with context.page.expect_download() as download_info:
+    asset_url = await download_button.get_attribute("href")
+    assert asset_url, "Could not extract asset url from the DOM!!"
+    await ctx.database.mark_asset(ctx.store.website_id, asset_url)
+
+    async with ctx.page.expect_download() as download_info:
         await download_button.click()
     download = await download_info.value
-    filepath = Path(context.storage.path, download.suggested_filename)
+    filepath = Path(ctx.storage.path, download.suggested_filename)
     await download.save_as(filepath)

@@ -1,5 +1,6 @@
 from crawlee.crawlers import PlaywrightCrawler
 from crawlee.sessions import SessionPool
+from urllib.parse import urlparse
 from crawlee import Request
 
 from dataclasses import dataclass
@@ -7,7 +8,7 @@ from datetime import timedelta
 
 from ...resources import AssetDatabaseResource, AccountResource, StorageResource
 from .._crawler import Crawler
-from ._context import CraftpixWebsiteContext
+from ._context import CraftpixWebsiteContext, CraftpixStore
 from ._common import Labels
 from ._routes import router
 
@@ -27,6 +28,7 @@ class CraftpixCrawler(Crawler):
         self.context = CraftpixWebsiteContext(
             seed_url="https://craftpix.net/categorys/pixel-art-sprites/",
             login_url="https://craftpix.net/",
+            store=CraftpixStore(website_id=0),
             database=resources.database,
             account=resources.account,
             storage=resources.storage,
@@ -53,4 +55,13 @@ class CraftpixCrawler(Crawler):
 
     async def scrape(self) -> None:
         async with self.context.database:
+            # Insert or Retrieve existing website frm DB
+            website = urlparse(self.seed.url).netloc
+            website_id = await self.context.database.exi_website(website)
+
+            # Setup dynamic store values
+            assert website_id, "Could not obtain website_id!"
+            self.context.store.website_id = website_id
+
+            # Start webscraping
             await self.crawler.run([self.seed])

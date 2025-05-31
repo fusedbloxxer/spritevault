@@ -5,11 +5,17 @@ from ...resources import AssetDatabaseResource, AccountResource, StorageResource
 from .._context import WebsiteContext
 
 
+@dataclass
+class CraftpixStore:
+    website_id: int = 0
+
+
 @dataclass(frozen=True)
 class CraftpixWebsiteContext(WebsiteContext):
     database: AssetDatabaseResource
     account: AccountResource
     storage: StorageResource
+    store: CraftpixStore
     login_url: str
     seed_url: str
 
