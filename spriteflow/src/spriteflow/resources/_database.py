@@ -2,10 +2,22 @@ import asyncpg
 
 from dataclasses import dataclass
 from dagster import ConfigurableResource
+from typing import Self, List, Union, cast
 from asyncpg import Pool, Connection, Record
-from typing import Self, List, Union, Any, cast
 
 from spritecrawl.resources import AssetDatabaseResource
+
+
+class PostgresConnectionResource(ConfigurableResource):
+    database: str
+    username: str
+    password: str
+    hostname: str
+    port: str
+
+    @property
+    def dsn(self) -> str:
+        return f"postgresql://{self.username}:{self.password}@{self.hostname}:{self.port}/{self.database}"
 
 
 @dataclass
@@ -56,7 +68,7 @@ class PostgresAssetDatabaseResource(AssetDatabaseResource):
                 await con.execute(query, url)
                 query = """SELECT id FROM website WHERE url = $1"""
                 record = await con.fetchrow(query, url)
-                return cast(Record, record)['id']
+                return cast(Record, record)["id"]
             except Exception as e:
                 print(f"Error ensuring website exists: {e}")
                 return None
@@ -153,18 +165,6 @@ class PostgresAssetDatabaseResource(AssetDatabaseResource):
         if self.__pool:
             await self.__pool.close()
             print("Database connection closed.")
-
-
-class PostgresConnectionResource(ConfigurableResource):
-    database: str
-    username: str
-    password: str
-    hostname: str
-    port: str
-
-    @property
-    def dsn(self) -> str:
-        return f"postgresql://{self.username}:{self.password}@{self.hostname}:{self.port}/{self.database}"
 
 
 __all__ = [

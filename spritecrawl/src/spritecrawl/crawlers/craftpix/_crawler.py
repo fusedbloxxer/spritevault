@@ -6,7 +6,7 @@ from crawlee import Request
 from dataclasses import dataclass
 from datetime import timedelta
 
-from ...resources import AssetDatabaseResource, AccountResource, StorageResource
+from ...resources import AssetDatabaseResource, AccountResource, AssetManagerResource
 from .._crawler import Crawler
 from ._context import CraftpixWebsiteContext, CraftpixStore
 from ._common import Labels
@@ -16,7 +16,7 @@ from ._routes import router
 @dataclass()
 class CraftpixResources:
     database: AssetDatabaseResource
-    storage: StorageResource
+    storage: AssetManagerResource
     account: AccountResource
 
 

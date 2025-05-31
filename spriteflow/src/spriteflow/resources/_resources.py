@@ -1,6 +1,5 @@
-import os
-
 from typing import cast
+from pathlib import Path
 from dagster import EnvVar
 
 from ._database import PostgresConnectionResource
@@ -15,25 +14,26 @@ db_con = PostgresConnectionResource(
     hostname="localhost",
     port="8092",
 )
-
-crawler_craftpix_storage = CrawlerStorageResource(
-    path=os.path.join(cast(str, EnvVar("SCRAPE_DIR").get_value()), "craftpix", "images")
-)
-crawler_craftpix_account = CrawlerAccountResource(
-    username=EnvVar("CRAFTPIX_USERNAME"), password=EnvVar("CRAFTPIX_PASSWORD")
-)
 crawler_database = CrawlerDatabaseResource(
     db_con=db_con,
 )
+crawler_storage = CrawlerStorageResource(
+    path=cast(str, EnvVar("SCRAPE_DIR").get_value())
+)
+
+
+crawler_craftpix_account = CrawlerAccountResource(
+    username=EnvVar("CRAFTPIX_USERNAME"), password=EnvVar("CRAFTPIX_PASSWORD")
+)
 crawler_craftpix = CraftpixCrawlerResource(
-    storage=crawler_craftpix_storage,
     account=crawler_craftpix_account,
     database=crawler_database,
+    storage=crawler_storage,
+    name="craftpix",
 )
 
 all_resources = {
     "crawler_craftpix": crawler_craftpix,
-    "database": crawler_database,
 }
 
 __all__ = ["all_resources"]

@@ -1,8 +1,12 @@
+import os
 import typing as t
 
 from pathlib import Path
 from crawlee import Request
+from typing import Any, cast
+from dataclasses import asdict
 
+from ...resources import PixelArtAsset
 from .._router import RouterWithContext
 from ._context import CraftpixWebsiteContext
 from ._context import CraftpixCrawlerContext
@@ -80,7 +84,12 @@ async def freebie_handler(ctx: CraftpixCrawlerContext) -> None:
     link = await download_button.get_attribute("href")
     assert link, "Could not find download button for free asset!"
 
-    await ctx.add_requests([Request.from_url(link, label=Labels.Download)])
+    asset = ctx.storage.create_asset()
+    asset.text = ctx.request.url
+
+    request = Request.from_url(link, label=Labels.Download)
+    request.user_data["asset"] = asdict(asset)
+    await ctx.add_requests([request])
 
 
 @router.handler(Labels.Product)
@@ -101,5 +110,10 @@ async def download_handler(ctx: CraftpixCrawlerContext) -> None:
     async with ctx.page.expect_download() as download_info:
         await download_button.click()
     download = await download_info.value
-    filepath = Path(ctx.storage.path, download.suggested_filename)
-    await download.save_as(filepath)
+
+    async def download_asset(filepath: str):
+        await download.save_as(filepath)
+
+    asset = PixelArtAsset(**cast(Any, ctx.request.user_data["asset"]))
+    asset.asset_ext = os.path.splitext(download.suggested_filename)[1]
+    await ctx.storage.save_asset(asset, download_asset)
