@@ -1,14 +1,18 @@
+from dataclasses import dataclass
+from urllib.parse import urlparse
+from datetime import timedelta
+from typing import Any, cast
+
 from crawlee.crawlers import PlaywrightCrawler
 from crawlee.sessions import SessionPool
-from urllib.parse import urlparse
 from crawlee import Request
 
-from dataclasses import dataclass
-from datetime import timedelta
-
-from ...resources import AssetDatabaseResource, AccountResource, AssetManagerResource
+from ...resources import AssetDatabaseResource, AssetManagerResource, AccountResource
+from ...extensions import PlaywrightPageExtension
 from .._crawler import Crawler
-from ._context import CraftpixWebsiteContext, CraftpixStore
+from ._context import CraftpixWebsiteContext
+from ._context import CraftpixCrawlerContext
+from ._context import CraftpixStore
 from ._common import Labels
 from ._routes import router
 
@@ -22,10 +26,13 @@ class CraftpixResources:
 
 class CraftpixCrawler(Crawler):
     def __init__(self, resources: CraftpixResources) -> None:
+        global router
+
         super().__init__(name="craftpix")
 
         # Setup crawler context
         self.context = CraftpixWebsiteContext(
+            helper=PlaywrightPageExtension[CraftpixCrawlerContext](),
             seed_url="https://craftpix.net/categorys/pixel-art-sprites/",
             login_url="https://craftpix.net/",
             store=CraftpixStore(website_id=0),
@@ -36,6 +43,10 @@ class CraftpixCrawler(Crawler):
 
         # Setup crawler seed
         self.seed = Request.from_url(self.context.login_url, label=Labels.Login)
+
+        # Construct router and notify observers for new contexts
+        router.with_context(self.context).with_observer(self.context.helper)
+        router = cast(Any, router)
 
         # Setup crawler settings
         session_settings = {
@@ -48,9 +59,9 @@ class CraftpixCrawler(Crawler):
             max_pool_size=1,
         )
         self.crawler = PlaywrightCrawler(
-            request_handler=router.with_context(self.context),
+            request_handler=router,
             session_pool=session,
-            headless=False,
+            headless=True,
         )
 
     async def scrape(self) -> None:

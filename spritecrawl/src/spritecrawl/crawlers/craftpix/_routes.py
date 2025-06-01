@@ -1,12 +1,13 @@
 import os
 import typing as t
 
-from pathlib import Path
 from crawlee import Request
 from typing import Any, cast
 from dataclasses import asdict
+from urllib.parse import urlparse
 
-from ...resources import PixelArtAsset
+from ...extensions import DownloadOptions
+from ...resources import Asset
 from .._router import RouterWithContext
 from ._context import CraftpixWebsiteContext
 from ._context import CraftpixCrawlerContext
@@ -23,12 +24,15 @@ async def default_handler(ctx: CraftpixCrawlerContext) -> None:
 
 @router.handler(Labels.Login)
 async def login_handler(ctx: CraftpixCrawlerContext) -> None:
+    ctx.log.info(f'Visiting login page at: {ctx.request.loaded_url}')
+
     login_element = ctx.page.locator("a.lr-singin")
     await login_element.click()
 
     auth_form = ctx.page.locator("#auth-form")
     await auth_form.wait_for(state="visible")
 
+    ctx.log.info(f'Entering credentials for user: {ctx.account.username}')
     await auth_form.locator("#user_login").type(ctx.account.username, delay=25)
     await auth_form.locator("#user_pass").type(ctx.account.password, delay=25)
     await auth_form.locator("#submit-btn").click()
@@ -37,13 +41,14 @@ async def login_handler(ctx: CraftpixCrawlerContext) -> None:
     await account_element.wait_for(state="visible")
     await ctx.page.wait_for_timeout(2000)
 
+    ctx.log.info(f'Logged in successfully. Continue to scrape content at: {ctx.seed_url}')
     seed_request = Request.from_url(ctx.seed_url, label=Labels.Category)
     await ctx.add_requests([seed_request])
 
 
 @router.handler(Labels.Category)
 async def category_handler(ctx: CraftpixCrawlerContext) -> None:
-    ctx.log.info(f"Category: {ctx.request.loaded_url}")
+    ctx.log.info(f"Category page: {ctx.request.loaded_url}")
 
     heading_element = ctx.page.locator("h1", has_text="Pixel Art Sprites")
     await heading_element.wait_for(state="visible")
@@ -77,43 +82,108 @@ async def category_handler(ctx: CraftpixCrawlerContext) -> None:
 
 @router.handler(Labels.Freebie)
 async def freebie_handler(ctx: CraftpixCrawlerContext) -> None:
-    await ctx.database.mark_url(ctx.store.website_id, ctx.request.url)
-    ctx.log.info(f"Freebie URL: {ctx.request.loaded_url}")
+    ctx.log.info(f"Found freebie asset at: {ctx.request.loaded_url}")
 
+    # Find relevant elements
+    description_elem = ctx.page.locator('div[itemprop="description"]')
+    title_elem = ctx.page.locator("h1.product_title")
+    tag_elems = ctx.page.locator("ul.tags a")
+
+    # Extract metadata from asset page
+    asset = ctx.storage.create_asset()
+
+    # Fill in shared data
+    asset.asset_page = ctx.request.url
+    asset.title = await title_elem.inner_text()
+    asset.text = await description_elem.inner_text()
+    asset.website = urlparse(ctx.seed_url).netloc
+    tag_values = await tag_elems.all_text_contents()
+    tag_values = [tag_content.replace("#", "") for tag_content in tag_values]
+    asset.tags = tag_values
+
+    # Proceed to download page
     download_button = ctx.page.locator("a.gtm-download-free").first
     link = await download_button.get_attribute("href")
     assert link, "Could not find download button for free asset!"
 
-    asset = ctx.storage.create_asset()
-    asset.text = ctx.request.url
-
-    request = Request.from_url(link, label=Labels.Download)
+    request = Request.from_url(link, label=Labels.FreeDownload)
     request.user_data["asset"] = asdict(asset)
     await ctx.add_requests([request])
 
 
-@router.handler(Labels.Product)
-async def product_handler(ctx: CraftpixCrawlerContext) -> None:
-    await ctx.database.mark_url(ctx.store.website_id, ctx.request.url)
-    ctx.log.info(f"Product URL: {ctx.request.loaded_url}")
+@router.handler(Labels.FreeDownload)
+async def free_download_handler(ctx: CraftpixCrawlerContext) -> None:
+    ctx.log.info(f"Downloading free asset at: {ctx.request.loaded_url}")
 
-
-@router.handler(Labels.Download)
-async def download_handler(ctx: CraftpixCrawlerContext) -> None:
     download_button = ctx.page.locator("a", has_text="Start Download")
-    await download_button.wait_for(state="visible", timeout=16 * 1_000)
+    await download_button.wait_for(state="visible", timeout=20 * 1_000)
 
     asset_url = await download_button.get_attribute("href")
     assert asset_url, "Could not extract asset url from the DOM!!"
-    await ctx.database.mark_asset(ctx.store.website_id, asset_url)
 
-    async with ctx.page.expect_download() as download_info:
-        await download_button.click()
-    download = await download_info.value
+    asset = Asset(**cast(Any, ctx.request.user_data["asset"]))
+    asset.asset_url = asset_url
 
-    async def download_asset(filepath: str):
-        await download.save_as(filepath)
+    async def download_asset(options: DownloadOptions):
+        await ctx.helper.download_from_url(options)
 
-    asset = PixelArtAsset(**cast(Any, ctx.request.user_data["asset"]))
-    asset.asset_ext = os.path.splitext(download.suggested_filename)[1]
     await ctx.storage.save_asset(asset, download_asset)
+    await ctx.database.mark_url(ctx.store.website_id, asset.asset_page)
+    await ctx.database.mark_asset(ctx.store.website_id, asset.asset_url)
+    ctx.log.info(f"Successfully downloaded asset: {asset.asset_url}")
+
+
+@router.handler(Labels.Product)
+async def product_handler(ctx: CraftpixCrawlerContext) -> None:
+    ctx.log.info(f"Found premium asset at: {ctx.request.loaded_url}")
+
+    # Load lazy content
+    await ctx.helper.scroll_to_bottom()
+
+    # Find relevant elements
+    description_elem = ctx.page.locator('div[itemprop="description"]')
+    title_elem = ctx.page.locator("h1.product_title")
+    tag_elems = ctx.page.locator("ul.tags a")
+
+    # Find all preview assets
+    preview_elems = ctx.page.locator("figure.single-post-thumbnail > a")
+    preview_urls = await preview_elems.evaluate_all("(e) => e.map(x => x.href)")
+
+    # Find all demo assets
+    demo_elems = description_elem.locator("img[src]")
+    demo_urls = await demo_elems.evaluate_all("(e) => e.map(x => x.src)")
+
+    # Join all assets
+    asset_urls = list(demo_urls) # list(preview_urls) + list(demo_urls)
+
+    requests: t.List[Request] = []
+    for asset_url in asset_urls:
+        asset = ctx.storage.create_asset()
+
+        # Fill in shared data across similar assets
+        asset.asset_url = asset_url
+        asset.asset_page = ctx.request.url
+        asset.title = await title_elem.inner_text()
+        asset.text = await description_elem.inner_text()
+        asset.website = urlparse(ctx.seed_url).netloc
+        tag_values = await tag_elems.all_text_contents()
+        tag_values = [tag_content.replace("#", "") for tag_content in tag_values]
+        asset.tags = tag_values
+
+        request = Request.from_url(asset_url, label=Labels.PreviewDownload)
+        request.user_data["asset"] = asdict(asset)
+        requests.append(request)
+    await ctx.add_requests(requests)
+    await ctx.database.mark_url(ctx.store.website_id, ctx.request.url)
+
+
+@router.handler(Labels.PreviewDownload)
+async def preview_download_handler(ctx: CraftpixCrawlerContext) -> None:
+    ctx.log.info(f"Preview URL: {ctx.request.loaded_url}")
+
+    async def download_asset(options: DownloadOptions):
+        await ctx.helper.download_from_url(options)
+
+    asset = Asset(**cast(Any, ctx.request.user_data["asset"]))
+    await ctx.storage.save_asset(asset, download_asset)
+    await ctx.database.mark_asset(ctx.store.website_id, asset.asset_url)
