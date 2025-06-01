@@ -116,7 +116,7 @@ async def free_download_handler(ctx: CraftpixCrawlerContext) -> None:
     ctx.log.info(f"Downloading free asset at: {ctx.request.loaded_url}")
 
     download_button = ctx.page.locator("a", has_text="Start Download")
-    await download_button.wait_for(state="visible", timeout=20 * 1_000)
+    await download_button.wait_for(state="visible", timeout=30 * 1_000)
 
     asset_url = await download_button.get_attribute("href")
     assert asset_url, "Could not extract asset url from the DOM!!"
@@ -137,24 +137,21 @@ async def free_download_handler(ctx: CraftpixCrawlerContext) -> None:
 async def product_handler(ctx: CraftpixCrawlerContext) -> None:
     ctx.log.info(f"Found premium asset at: {ctx.request.loaded_url}")
 
-    # Load lazy content
-    await ctx.helper.scroll_to_bottom()
-
     # Find relevant elements
+    preview_elems = ctx.page.locator("figure.single-post-thumbnail > a")
     description_elem = ctx.page.locator('div[itemprop="description"]')
+    demo_elems = description_elem.locator("img[src]")
     title_elem = ctx.page.locator("h1.product_title")
     tag_elems = ctx.page.locator("ul.tags a")
 
-    # Find all preview assets
-    preview_elems = ctx.page.locator("figure.single-post-thumbnail > a")
+    # Load lazy content
+    await ctx.helper.scroll_to_bottom()
+
+    # Grab all assets
     preview_urls = await preview_elems.evaluate_all("(e) => e.map(x => x.href)")
-
-    # Find all demo assets
-    demo_elems = description_elem.locator("img[src]")
-    demo_urls = await demo_elems.evaluate_all("(e) => e.map(x => x.src)")
-
-    # Join all assets
-    asset_urls = list(demo_urls) # list(preview_urls) + list(demo_urls)
+    demo_urls = await demo_elems.evaluate_all("(e) => e.map(x => [x.src, x.classList.contains('lazy-hidden')])")
+    demo_urls = [demo_url[0] for demo_url in demo_urls if not demo_url[1]]
+    asset_urls = list(preview_urls) + list(demo_urls)
 
     requests: t.List[Request] = []
     for asset_url in asset_urls:

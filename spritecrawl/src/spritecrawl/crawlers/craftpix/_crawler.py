@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from urllib.parse import urlparse
 from datetime import timedelta
+from datetime import timedelta
 from typing import Any, cast
 
 from crawlee.crawlers import PlaywrightCrawler
@@ -59,9 +60,10 @@ class CraftpixCrawler(Crawler):
             max_pool_size=1,
         )
         self.crawler = PlaywrightCrawler(
+            request_handler_timeout=timedelta(seconds=60),
             request_handler=router,
             session_pool=session,
-            headless=True,
+            headless=False,
         )
 
     async def scrape(self) -> None:
