@@ -5,24 +5,11 @@ import aiofiles
 
 from pathlib import Path
 from datetime import datetime
-from dataclasses import dataclass, field, asdict
-from typing import List, Callable, Awaitable, Unpack
+from typing import Callable, Awaitable
+from dataclasses import dataclass, asdict
 
+from ..datatype import Asset
 from ..extensions import DownloadOptions
-
-
-@dataclass(kw_only=True)
-class Asset:
-    text: str = ""
-    group: str = ""
-    title: str = ""
-    artist: str = ""
-    website: str = ""
-    asset_id: str = ""
-    asset_url: str = ""
-    asset_page: str = ""
-    timestamp: int = 0
-    tags: List[str] = field(default_factory=list)
 
 
 @dataclass

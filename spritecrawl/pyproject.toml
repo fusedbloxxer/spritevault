@@ -8,6 +8,8 @@ requires-python = ">=3.13.3"
 dependencies = [
     "aiofiles>=24.1.0",
     "crawlee[all]>=0.6.9",
+    "imageio>=2.37.0",
+    "pandas>=2.2.3",
     "python-dotenv>=1.1.0",
 ]
 

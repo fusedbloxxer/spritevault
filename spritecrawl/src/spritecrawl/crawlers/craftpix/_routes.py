@@ -7,7 +7,7 @@ from dataclasses import asdict
 from urllib.parse import urlparse
 
 from ...extensions import DownloadOptions
-from ...resources import Asset
+from ...datatype import Asset
 from .._router import RouterWithContext
 from ._context import CraftpixWebsiteContext
 from ._context import CraftpixCrawlerContext

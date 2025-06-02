@@ -7,9 +7,7 @@ from ..resources import CraftpixCrawlerResource
 
 
 @asset
-async def craftpix_sprites(
-    context: AssetExecutionContext, crawler_craftpix: CraftpixCrawlerResource
-) -> None:
+async def crawl_craftpix_sprites(context: AssetExecutionContext, crawler_craftpix: CraftpixCrawlerResource) -> None:
     """Pixel art spritesheets and metadata from craftpix.net website"""
     context.log.info("Crawling Craftpix")
 

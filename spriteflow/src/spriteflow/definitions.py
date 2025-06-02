@@ -1,11 +1,7 @@
 from dagster import Definitions
-from dagster import load_assets_from_modules
 
-from .assets import assets
+from .assets import all_assets
 from .resources import all_resources
-
-
-all_assets = load_assets_from_modules([assets])
 
 
 defs = Definitions(
